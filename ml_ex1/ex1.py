@@ -36,7 +36,7 @@ def computeCost(X, y, w):
 ########################################################################
 def main():
     # Load data
-    path = os.getcwd() + '/../ipython-notebook/data/ex1data1.txt'
+    path = os.getcwd() + '/../data/ex1data1.txt'
     data = pd.read_csv(path, header=None, names=['Population', 'Profit'])
 
     # Plot data
