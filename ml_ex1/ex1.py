@@ -42,17 +42,38 @@ def main():
 
     # Print final weights
     print("====================================================")
-    print("Final weights gradient descent = \n" + str(w_gd))
-    print("Final weights pseudo inverse = \n" + str(w_pseudo_inv))
-    print("====================================================")
+    print("Gradient descent")
+    print("----------------------------------------------------")
+    print("Iterations = " + str(iters))
+    print("Alpha      = " + str(alpha))
+    print("Weights    = " + str(w_gd[0, 0]) + ", " + str(w_gd[1, 0]))
+    print("----------------------------------------------------")
+    print("Pseudo inverse")
+    print("----------------------------------------------------")
+    print("Weights    = " + str(w_pseudo_inv[0, 0]) + ", " + str(w_pseudo_inv[1, 0]))
 
-    # Plot data
+    # Check for a specific prediction both methods
+    new_data = pd.DataFrame({'Population': [5.]})
+    new_data.insert(0, 'Bias', 1.)
+    new_X = np.matrix(new_data.values)
+    predicted_price_gd = new_X*w_gd
+    predicted_price_pseudo_inv = new_X*w_pseudo_inv
+    print("====================================================")
+    print("Prediction for : \n" + str(new_data) + "\n")
+    print("Predicted profit with gradient descent = ")
+    print("\t\t" + str(predicted_price_gd[0, 0]))
+    print("Predicted profit with pseudo inverse   = ")
+    print("\t\t" + str(predicted_price_pseudo_inv[0, 0]))
+    print("====================================================")
+# Plot data
     if print_plots_flag:
         x = np.linspace(data.Population.min(), data.Population.max(), 100)
         f = w_gd[0, 0] + (w_gd[1, 0] * x)
+        f2 = w_pseudo_inv[0, 0] + (w_pseudo_inv[1, 0] * x)
 
         fig, ax = plt.subplots(figsize=(12, 8))
-        ax.plot(x, f, 'r', label='Prediction')
+        ax.plot(x, f, 'r', label='Prediction with gradient descent. #iters = ' + str(iters))
+        ax.plot(x, f2, 'g', label='Prediction with pseudo inverse')
         ax.scatter(data.Population, data.Profit, label='Training Data')
         ax.legend(loc=2)
         ax.set_xlabel('Population')
@@ -66,17 +87,6 @@ def main():
         ax.set_ylabel('Cost')
         ax.set_title('Error vs. Training Epoch')
         plt.show()
-
-    # Check for a specific prediction both methods
-    new_data = pd.DataFrame({'Population': [5.]})
-    new_data.insert(0, 'Bias', 1.)
-    new_X = np.matrix(new_data.values)
-    predicted_price_gd = new_X*w_gd
-    predicted_price_pseudo_inv = new_X*w_pseudo_inv
-    print("Prediction for : \n" + str(new_data) + "\n")
-    print("Predicted profit with gradient descent = " + str(predicted_price_gd[0, 0]))
-    print("Predicted profit with pseudo inverse   = " + str(predicted_price_pseudo_inv[0, 0]))
-    print("====================================================")
 
 if __name__ == "__main__":
     main()
