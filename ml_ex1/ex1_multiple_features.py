@@ -9,40 +9,29 @@ import my_lin_reg_lib as lr
 # main
 ########################################################################
 def main():
+    print_plots_flag = True
     # Load data
     path = os.getcwd() + '/../data/ex1data2.txt'
     data = pd.read_csv(path, header=None, names=['Size', 'Bedrooms', 'Price'])
-
-    # Print stats
-    print("====================================================")
-    print("Head of data (before normalization)")
-    print("====================================================")
-    print(data.head())
-
-    # Normalize data
-    data_mean = data.mean()
-    data_std = data.std()
-    data = (data - data_mean) / data_std
-    print("====================================================")
-    print("Data Mean")
-    print("====================================================")
-    print(data_mean)
-    print("====================================================")
-    print("Data STD")
-    print("====================================================")
-    print(data_std)
-    # Print stats
-    print("====================================================")
-    print("Head of data (after normalization)")
-    print("====================================================")
-    print(data.head())
-    # Add column of zeros to feature matrix (bias)
-    data.insert(0, 'Bias', 1)
 
     # Set X and y
     cols = data.shape[1]  # shape returns tuple of (rows, cols)
     X = data.iloc[:, 0:cols-1]
     y = data.iloc[:, cols-1:cols]
+
+    # Normalize features
+    X_mean = X.mean()
+    X_std = X.std()
+    X = (X - X_mean) / X_std
+
+    # Add column of zeros to feature matrix (bias)
+    X.insert(0, 'Bias', 1.)
+
+    # Print stats
+    print("====================================================")
+    print("Data before and after normalization")
+    print("====================================================")
+    print(pd.concat([data.head(), X.head(), y.head()], axis=1))
 
     # Convert DataFrame to Matrix
     X = np.matrix(X.values)
@@ -50,40 +39,39 @@ def main():
 
     # Call gradientDescent with learning rate of alpha
     alpha = 0.01
-    iters = 1000
-    w, cost = lr.gradientDescent(X, y, alpha, iters)
+    iters = 10000
+    w_gd, cost = lr.gradientDescent(X, y, alpha, iters)
 
-    print("====================================================")
-    print("Final weights = \n" + str(w))
-    print("====================================================")
     # Plot data and prediction
-    x = np.linspace(data.Size.min(), data.Size.max(), 100)
-    f = w[0, 0] + (w[1, 0] * x)
+    if print_plots_flag:
+        # Plot error vs. training epoch (iteration)
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.plot(np.arange(iters), cost, 'r')
+        ax.set_xlabel('Iterations')
+        ax.set_ylabel('Cost')
+        ax.set_title('Error vs. Training Epoch')
+        plt.show()
 
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax.plot(x, f, 'r', label='Prediction')
-    ax.scatter(data.Size, data.Price, label='Training Data')
-    ax.legend(loc=2)
-    ax.set_xlabel('Size')
-    ax.set_ylabel('Price')
-    ax.set_title('Predicted Price vs. House Size (square feet)')
+    # Calculate weights using normal equation
+    w_pseudo_inv = (np.linalg.inv(X.T*X))*X.T*y
 
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax.plot(x, f, 'r', label='Prediction')
-    ax.scatter(data.Bedrooms, data.Price, label='Training Data')
-    ax.legend(loc=2)
-    ax.set_xlabel('Bedrooms')
-    ax.set_ylabel('Price')
-    ax.set_title('Predicted Price vs. House Bedrooms')
+    # Print final weights
+    print("====================================================")
+    print("Final weights gradient descent = \n" + str(w_gd))
+    print("Final weights pseudo inverse   = \n" + str(w_pseudo_inv))
+    print("====================================================")
 
-    # Plot error vs. training epoch (iteration)
-    fig, ax = plt.subplots(figsize=(12, 8))
-    ax.plot(np.arange(iters), cost, 'r')
-    ax.set_xlabel('Iterations')
-    ax.set_ylabel('Cost')
-    ax.set_title('Error vs. Training Epoch')
-    plt.show()
-
+    # Check for a specific prediction both methods
+    new_data = pd.DataFrame({'Size': [1650.], 'Bedrooms': [3.]})
+    new_data_normalized = (new_data - X_mean) / X_std
+    new_data_normalized.insert(0, 'Bias', 1.)
+    new_X = np.matrix(new_data_normalized.values)
+    predicted_price_gd = new_X*w_gd
+    predicted_price_pseudo_inv = new_X*w_pseudo_inv
+    print("Prediction for : \n" + str(new_data) + "\n")
+    print("Predicted price with gradient descent = " + str(predicted_price_gd[0, 0]))
+    print("Predicted price with pseudo inverse   = " + str(predicted_price_pseudo_inv[0, 0]))
+    print("====================================================")
 
 if __name__ == "__main__":
     main()
