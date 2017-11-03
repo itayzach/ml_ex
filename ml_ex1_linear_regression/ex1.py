@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-import my_lin_reg_lib as lr
+import my_lin_reg_lib as linreg
 
 
 ########################################################################
@@ -35,7 +35,7 @@ def main():
     # Call gradientDescent with learning rate of alpha
     alpha = 0.01
     iters = 10000
-    w_gd, cost_vec = lr.gradientDescent(X, y, alpha, iters)
+    w_gd, cost_vec = linreg.gradientDescent(X, y, alpha, iters, linreg.innerProd)
 
     # Calculate weights using normal equation
     w_pseudo_inv = (np.linalg.inv(X.T*X))*X.T*y
