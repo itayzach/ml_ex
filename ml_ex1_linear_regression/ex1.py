@@ -1,8 +1,10 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import os
-import my_lin_reg_lib as linreg
+import sys
+import ml_common as ml
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../ml_common')))
 
 
 ########################################################################
@@ -34,8 +36,8 @@ def main():
 
     # Call gradientDescent with learning rate of alpha
     alpha = 0.01
-    iters = 10000
-    w_gd, cost_vec = linreg.gradientDescent(X, y, alpha, iters, linreg.innerProd)
+    iters = 100000
+    w_gd, loss_vec = ml.gradientDescent(X, y, alpha=alpha, iters=iters, h=ml.innerProd, loss=ml.linRegLoss)
 
     # Calculate weights using normal equation
     w_pseudo_inv = (np.linalg.inv(X.T*X))*X.T*y
@@ -82,7 +84,7 @@ def main():
 
         # Plot error vs. training epoch (iteration)
         fig, ax = plt.subplots(figsize=(12, 8))
-        ax.plot(np.arange(iters), cost_vec, 'r')
+        ax.plot(np.arange(iters), loss_vec, 'r')
         ax.set_xlabel('Iterations')
         ax.set_ylabel('Cost')
         ax.set_title('Error vs. Training Epoch')
