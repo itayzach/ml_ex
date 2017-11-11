@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../m
 # main
 ########################################################################
 def main():
-    print_plots_flag = False
+    print_plots_flag = True
 
     # Load data
     path = os.getcwd() + '/../data/ex2data1.txt'
@@ -20,10 +20,16 @@ def main():
 
     positive = data[data['Admitted'] == 1]
     negative = data[data['Admitted'] == 0]
-    #print(positive)
 
     # Add column of zeros to feature matrix (bias)
     data.insert(0, 'Bias', 1)
+
+    # Print stats
+    print("====================================================")
+    print("Head of data")
+    print("====================================================")
+    print(data.head())
+    print("====================================================")
 
     # Extract +/-1 outcomes for admissions
     # Set X and y
@@ -35,24 +41,29 @@ def main():
     X = np.matrix(X.values)
     y = np.matrix(y.values)
 
-    if print_plots_flag:
-        fig, ax = plt.subplots(figsize=(12, 8))
-        ax.scatter(positive['Exam 1'], positive['Exam 2'], s=50, c='b', marker='o', label='Admitted')
-        ax.scatter(negative['Exam 1'], negative['Exam 2'], s=50, c='r', marker='x', label='Not Admitted')
-        ax.legend()
-        ax.set_xlabel('Exam 1 Score')
-        ax.set_ylabel('Exam 2 Score')
-
-        plt.show()
-
-    w_gd, loss_vec = ml.gradientDescent(X, y, alpha=0.01, iters=1000, h=ml.sigmoid, loss=ml.logRegLoss)
-
-    # print(loss_vec)
-    print(w_gd)
-
+    # run fmin_tcn to find best weights
     num_samples, num_features = X.shape
     init_w = np.matrix(np.zeros((num_features, 1)))
-    w_tcn = opt.fmin_tnc(func=ml.logRegLoss, x0=init_w, fprime=ml.grad, args=(X, y, ml.sigmoid), disp=False)
+    result = opt.fmin_tnc(func=ml.logRegLoss, x0=init_w, fprime=ml.grad, args=(X, y, ml.sigmoid), disp=False)
+    w_tcn = result[0]
+    print("Weights from TCN:")
     print(w_tcn)
+
+    if print_plots_flag:
+        x_axis = np.linspace(min(min(positive['Exam 1']), min(negative['Exam 1'])), max(max(positive['Exam 1']), max(negative['Exam 1'])), 100)
+        # w1x + w2y + w0 = 0
+        # y = -(w1/w2)x - w0/w1
+        f_tcn = - (w_tcn[1]/w_tcn[2] * x_axis) - w_tcn[0]/w_tcn[2]
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.plot(x_axis, f_tcn, 'g', label='Prediction with fmin function')
+        ax.scatter(positive['Exam 1'], positive['Exam 2'], s=50, c='b', marker='o', label='Admitted')
+        ax.scatter(negative['Exam 1'], negative['Exam 2'], s=50, c='r', marker='x', label='Not Admitted')
+        ax.legend(loc=2)
+        ax.set_xlabel('Exam 1 Score')
+        ax.set_ylabel('Exam 2 Score')
+        plt.show()
+
+
 if __name__ == "__main__":
     main()
