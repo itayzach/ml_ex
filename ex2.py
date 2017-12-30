@@ -15,7 +15,8 @@ def main():
     print_plots_flag = True
 
     # Load data
-    path = os.getcwd() + '/../data/ex2data1.txt'
+    path = os.getcwd() + '/data/ex2data1.txt'
+    print(path)
     data = pd.read_csv(path, header=None, names=['Exam 1', 'Exam 2', 'Admitted'])
 
     positive = data[data['Admitted'] == 1]
