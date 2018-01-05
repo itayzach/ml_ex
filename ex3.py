@@ -15,14 +15,14 @@ def main():
     print_plots_flag = False
 
     # Load data
-    data = loadmat("../data/ex3data1")
+    data = loadmat("data/ex3data1")
     print("X is a 5000 samples of 20x20=400 pixels handwritten digits images")
     print("y is the classification of each image (1-9 are 1-9, 0 is 10)")
     print("X shape = " + str(data['X'].shape))
     print("y shape = " + str(data['y'].shape))
 
-    X = data['X']
-    y = data['y']
+    X = np.matrix(data['X'])
+    y = np.matrix(data['y'])
     num_samples, num_features = X.shape
     # Add column of zeros to feature matrix (bias)
     X = np.insert(X, 0, values=np.ones(num_samples), axis=1)
@@ -31,10 +31,13 @@ def main():
     # llambda = 0  # regularization factor
     # gradient = ml.grad(w, X, y, ml.sigmoid, llambda)
     # print("grad = " + str(gradient))
-    #
-    loss = ml.logRegLossRegularized(w, X, y, ml.sigmoid, llambda=1)
 
-    w_matrix = ml.oneVsAll(X, y, ml.sigmoid, llambda=1, num_labels=10)
+    # print ml.logRegLossRegularized(w, X, y, ml.sigmoid, llambda=1)
+    #
+    # g = ml.gradRegularized(w, X, y, ml.sigmoid, llambda=1)
+    # print g[:5,:]
+
+    w_matrix = ml.oneVsAll(X, y, ml.sigmoid, llambda=0, num_labels=2)
     print X.shape, w_matrix.shape
     y_pred = ml.predict_all(X, w_matrix)
 

@@ -5,12 +5,14 @@ from scipy.optimize import minimize
 ########################################################################
 # sigmoid
 ########################################################################
-def sigmoid(X, w):
-    #if X.shape[1] != w.shape[0]:
-    w = w.reshape(w.size, 1)
-    z = np.dot(X, w)
-    return 1/(1 + np.exp(-z))
+# def sigmoid(X, w):
+#     #if X.shape[1] != w.shape[0]:
+#     w = w.reshape(w.size, 1)
+#     z = np.dot(X, w)
+#     return 1/(1 + np.exp(-z))
 
+def sigmoid(z):
+    return 1/(1 + np.exp(-z))
 
 ########################################################################
 # innerProd
@@ -23,23 +25,42 @@ def innerProd(X, w):
 # grad
 ########################################################################
 def grad(w, X, y, h):
-    num_samples, num_features = X.shape
-    gradient = (0.5/num_samples) * X.T * (h(X, w) - y)
+    num_samples = X.shape[0]
+    gradient = (1./num_samples) * X.T * (h(X, w) - y)
     return gradient
 
 
 ########################################################################
 # grad with regularization
 ########################################################################
-def gradRegularized(w, X, y, h, llambda):
+def gradRegularized_bad(w, X, y, h, llambda):
+    X = np.matrix(X)
+    y = np.matrix(y)
+    w = np.matrix(w)
     num_samples, num_features = X.shape
     reg = np.matrix(llambda/num_samples * w).reshape(num_features, 1)
-    gradient = grad(w, X, y, h) + reg
+    # gradient = grad(w, X, y, h) + reg
+    error = (h(X * w.T) - y)
+    gradient = (1./num_samples) * (X.T * error) + reg
     # the bias term should not have regularization
-    gradient[0, 0] = (0.5/num_samples) * X[:, 0].T * (h(X, w) - y)
+    gradient[0, 0] =  np.sum(np.multiply(error, X[:, 0])) / num_samples
+
     return gradient
 
 
+def gradRegularized(w, X, y, h, llambda):
+    w = np.matrix(w)
+    X = np.matrix(X)
+    y = np.matrix(y)
+
+    error = h(X * w.T) - y
+    g = ((X.T * error) / len(X)).T + ((llambda / len(X)) * w)
+
+    # intercept gradient is not regularized
+    # g[0, 0] = np.sum(np.multiply(error, X[:, 0])) / len(X)
+    g[0, 0] = (error.T * X[:, 0]) / len(X)
+    g = np.array(g).ravel()
+    return g
 ########################################################################
 # gradientDescent
 ########################################################################
@@ -73,8 +94,8 @@ def linRegLoss(w, X, y, h):
 # logRegLoss
 ########################################################################
 def logRegLoss(w, X, y, h):
-    logs_diff = -y.T*np.log(h(X, w)) - (1-y).T*np.log(1-h(X, w))
-    loss = logs_diff / (2 * len(X))
+    logs_diff = -y.T*np.log(h(X* w.T)) - (1-y).T*np.log(1-h(X* w.T))
+    loss = logs_diff / (1 * len(X))
     return loss
 
 
@@ -82,10 +103,11 @@ def logRegLoss(w, X, y, h):
 # logRegLoss regularized
 ########################################################################
 def logRegLossRegularized(w, X, y, h, llambda):
-    # note that w0 is not regularized
+    w = np.matrix(w)
+    X = np.matrix(X)
+    y = np.matrix(y)
     w_norm_squared = np.power(np.linalg.norm(w[1:]), 2)  # ||w[1:]||^2
-    loss = logRegLoss(w, X, y, h) + (llambda/(2*len(X)))*w_norm_squared
-    return loss
+    return logRegLoss(w, X, y, h) + (llambda / (2 * len(X))) * w_norm_squared
 
 
 ########################################################################
@@ -94,12 +116,11 @@ def logRegLossRegularized(w, X, y, h, llambda):
 def oneVsAll(X, y, h, llambda, num_labels):
     num_samples, num_features = X.shape
     # each row k of w will contain the weights for the k'th label. (here, "label" refers to a digit 1-9,0)
-    w_matrix = np.zeros((num_labels, num_features))
+    w_matrix = np.matrix(np.zeros((num_labels, num_features)))
 
     # loop over all labels (1-9 and 10 that represents "0")
     for k in range(1, num_labels + 1):
-        # w_k = np.zeros(num_features)
-        w_k = np.matrix(np.zeros((num_features, 1)))
+        w_k = np.zeros((num_features, 1))
         # y_k has "1" where y is k, and "0" for all other labels
         y_k = np.matrix([1 if label == k else 0 for label in y])
         y_k = np.reshape(y_k, (num_samples, 1))
@@ -117,20 +138,18 @@ def predict_all(X, w_matrix):
     num_samples, num_features = X.shape
     num_labels = w_matrix.shape[0]
 
-    print X.shape, w_matrix.shape
     # convert to matrices
     X = np.matrix(X)
     w_matrix = np.matrix(w_matrix).reshape(num_labels, num_features)
 
     # compute the class probability for each class on each training instance
     h = np.matrix(np.zeros((num_samples, num_labels)))
-    print X.shape, h.shape
 
     # TODO: sigmoid has a bug. it cannot get a matrix, only a vector
-    for k in range(1, num_labels):
-        predict = sigmoid(X, w_matrix[k-1, :])
-        h[:, k-1] = predict
-
+    # for k in range(1, num_labels):
+    #     predict = sigmoid(X *w_matrix[k-1, :].T)
+    #     h[:, k-1] = predict
+    h = sigmoid(X * w_matrix.T)
     # create array of the index with the maximum probability
     h_argmax = np.argmax(h, axis=1)
 
@@ -138,5 +157,4 @@ def predict_all(X, w_matrix):
     h_argmax = h_argmax + 1
 
     return h_argmax
-
 
