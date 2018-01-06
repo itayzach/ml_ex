@@ -3,6 +3,21 @@ from scipy.optimize import minimize
 
 
 ########################################################################
+# handleMatDir
+########################################################################
+def handleMatDir(w, X, y):
+    w = np.matrix(w)
+    X = np.matrix(X)
+    y = np.matrix(y)
+
+    if w.shape[1] != 1:
+        w = w.T
+    if y.shape[1] != 1:
+        y = y.T
+    return w, X, y
+
+
+########################################################################
 # sigmoid
 ########################################################################
 # def sigmoid(X, w):
@@ -14,57 +29,46 @@ from scipy.optimize import minimize
 def sigmoid(z):
     return 1/(1 + np.exp(-z))
 
+
 ########################################################################
 # innerProd
 ########################################################################
-def innerProd(X, w):
-    return X*w
+def innerProd(z):
+    return z
+    # return X*w
 
 
 ########################################################################
 # grad
 ########################################################################
 def grad(w, X, y, h):
+    w, X, y = handleMatDir(w, X, y)
     num_samples = X.shape[0]
-    gradient = (1./num_samples) * X.T * (h(X, w) - y)
-    return gradient
+
+    g = (1./num_samples) * X.T * (h(X * w) - y)
+    return g
 
 
 ########################################################################
 # grad with regularization
 ########################################################################
-def gradRegularized_bad(w, X, y, h, llambda):
-    X = np.matrix(X)
-    y = np.matrix(y)
-    w = np.matrix(w)
-    num_samples, num_features = X.shape
-    reg = np.matrix(llambda/num_samples * w).reshape(num_features, 1)
-    # gradient = grad(w, X, y, h) + reg
-    error = (h(X * w.T) - y)
-    gradient = (1./num_samples) * (X.T * error) + reg
-    # the bias term should not have regularization
-    gradient[0, 0] =  np.sum(np.multiply(error, X[:, 0])) / num_samples
-
-    return gradient
-
-
 def gradRegularized(w, X, y, h, llambda):
-    w = np.matrix(w)
-    X = np.matrix(X)
-    y = np.matrix(y)
+    w, X, y = handleMatDir(w, X, y)
 
-    error = h(X * w.T) - y
-    g = ((X.T * error) / len(X)).T + ((llambda / len(X)) * w)
+    error = h(X * w) - y
+    g = ((X.T * error) / len(X)) + ((llambda / len(X)) * w)
 
     # intercept gradient is not regularized
-    # g[0, 0] = np.sum(np.multiply(error, X[:, 0])) / len(X)
     g[0, 0] = (error.T * X[:, 0]) / len(X)
-    g = np.array(g).ravel()
     return g
+
+
 ########################################################################
 # gradientDescent
 ########################################################################
 def gradientDescent(X, y, alpha, iters, h, loss):
+    X = np.matrix(X)
+    y = np.matrix(y)
     # Initialize
     num_samples, num_features = X.shape
     w = np.matrix(np.zeros((num_features, 1)))
@@ -84,8 +88,9 @@ def gradientDescent(X, y, alpha, iters, h, loss):
 # linRegLoss
 ########################################################################
 def linRegLoss(w, X, y, h):
-    norm = np.linalg.norm(h(X, w) - y)  # ||h(X,w) - y||
-    norm_squared = np.power(norm, 2)  # ||h(X,w) - y||^2
+    w, X, y = handleMatDir(w, X, y)
+    norm = np.linalg.norm(h(X * w) - y)  # ||h(X,w) - y||
+    norm_squared = np.power(norm, 2)    # ||h(X,w) - y||^2
     loss = norm_squared / (2 * len(X))
     return loss
 
@@ -94,7 +99,8 @@ def linRegLoss(w, X, y, h):
 # logRegLoss
 ########################################################################
 def logRegLoss(w, X, y, h):
-    logs_diff = -y.T*np.log(h(X* w.T)) - (1-y).T*np.log(1-h(X* w.T))
+    w, X, y = handleMatDir(w, X, y)
+    logs_diff = -y.T*np.log(h(X * w)) - (1-y).T*np.log(1-h(X * w))
     loss = logs_diff / (1 * len(X))
     return loss
 
@@ -103,11 +109,10 @@ def logRegLoss(w, X, y, h):
 # logRegLoss regularized
 ########################################################################
 def logRegLossRegularized(w, X, y, h, llambda):
-    w = np.matrix(w)
-    X = np.matrix(X)
-    y = np.matrix(y)
+    w, X, y = handleMatDir(w, X, y)
     w_norm_squared = np.power(np.linalg.norm(w[1:]), 2)  # ||w[1:]||^2
-    return logRegLoss(w, X, y, h) + (llambda / (2 * len(X))) * w_norm_squared
+    loss = logRegLoss(w, X, y, h) + (llambda / (2 * len(X))) * w_norm_squared
+    return loss
 
 
 ########################################################################
@@ -134,6 +139,9 @@ def oneVsAll(X, y, h, llambda, num_labels):
     return w_matrix
 
 
+########################################################################
+# predict_all
+########################################################################
 def predict_all(X, w_matrix):
     num_samples, num_features = X.shape
     num_labels = w_matrix.shape[0]
@@ -143,13 +151,8 @@ def predict_all(X, w_matrix):
     w_matrix = np.matrix(w_matrix).reshape(num_labels, num_features)
 
     # compute the class probability for each class on each training instance
-    h = np.matrix(np.zeros((num_samples, num_labels)))
-
-    # TODO: sigmoid has a bug. it cannot get a matrix, only a vector
-    # for k in range(1, num_labels):
-    #     predict = sigmoid(X *w_matrix[k-1, :].T)
-    #     h[:, k-1] = predict
     h = sigmoid(X * w_matrix.T)
+
     # create array of the index with the maximum probability
     h_argmax = np.argmax(h, axis=1)
 

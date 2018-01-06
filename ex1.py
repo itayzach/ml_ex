@@ -11,9 +11,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../m
 # main
 ########################################################################
 def main():
+    print("====================================================")
+    print("Linear regression")
+    print("Predict profit according to population size")
+    print("====================================================")
     print_plots_flag = True
     # Load data
-    path = os.getcwd() + '/../data/ex1data1.txt'
+    path = os.getcwd() + '/data/ex1data1.txt'
     data = pd.read_csv(path, header=None, names=['Population', 'Profit'])
 
     # Add column of zeros to feature matrix (bias)

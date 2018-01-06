@@ -12,11 +12,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../m
 # main
 ########################################################################
 def main():
+    print("====================================================")
+    print("Logistic regression")
+    print("Predict admission according to Exams 1 & 2 results")
+    print("====================================================")
     print_plots_flag = True
 
     # Load data
     path = os.getcwd() + '/data/ex2data1.txt'
-    print(path)
     data = pd.read_csv(path, header=None, names=['Exam 1', 'Exam 2', 'Admitted'])
 
     positive = data[data['Admitted'] == 1]
@@ -44,7 +47,7 @@ def main():
 
     # run fmin_tcn to find best weights
     num_samples, num_features = X.shape
-    init_w = np.matrix(np.zeros((num_features, 1)))
+    init_w = np.zeros((num_features, 1))
     result = opt.fmin_tnc(func=ml.logRegLoss, x0=init_w, fprime=ml.grad, args=(X, y, ml.sigmoid), disp=False)
     w_tcn = result[0]
     print("Weights from TCN:")
