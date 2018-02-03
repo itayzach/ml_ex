@@ -30,6 +30,9 @@ def sigmoid(z):
     return 1/(1 + np.exp(-z))
 
 
+def sigmoidGrad(z):
+    return np.multiply(sigmoid(z), (1 - sigmoid(z))) # element-wise
+
 ########################################################################
 # innerProd
 ########################################################################
@@ -165,29 +168,29 @@ def predict_all(X, w_matrix):
 ########################################################################
 # nnForwardPass
 ########################################################################
-def nnForwardPass(X, theta1_vec, theta2_vec):
+def nnForwardPass(X, theta1_mat, theta2_mat):
     num_samples, num_features = X.shape
 
     a1 = X
     a1 = np.insert(a1, 0, values=np.ones(num_samples), axis=1)  # add bias
-    z2 = a1*theta1_vec.T
+    z2 = a1*theta1_mat.T
     a2 = sigmoid(z2)
     a2 = np.insert(a2, 0, values=np.ones(num_samples), axis=1)  # add bias
-    z3 = a2*theta2_vec.T
-    a3 = sigmoid(z3)
+    z3 = a2*theta2_mat.T
+    y_hat = sigmoid(z3)
 
-    return a3
+    return a1, z2, a2, z3, y_hat
 
 
 ########################################################################
 # nnLoss
 ########################################################################
-def nnLoss(X, theta1_vec, theta2_vec, y):
+def nnLoss(X, theta1_mat, theta2_mat, y):
     num_labels = y.shape[0] # y is a one-hot vector, therefor its length is the number of possible labels
     loss_sum = 0
 
     # predict
-    y_nn = nnForwardPass(X, theta1_vec, theta2_vec)
+    a1, z2, a2, z3, y_nn = nnForwardPass(X, theta1_mat, theta2_mat)
 
     # convert to matrix type
     y_nn = np.matrix(y_nn)
@@ -208,12 +211,74 @@ def nnLoss(X, theta1_vec, theta2_vec, y):
 ########################################################################
 # nnLossRegularized
 ########################################################################
-def nnLossRegularized(X, theta1_vec, theta2_vec, y, llambda):
+def nnLossRegularized(X, theta1_mat, theta2_mat, y, llambda):
 
-    theta1_vec_norm_squared = np.power(np.linalg.norm(theta1_vec), 2)
-    theta2_vec_norm_squared = np.power(np.linalg.norm(theta2_vec), 2)
+    theta1_mat_norm_squared = np.power(np.linalg.norm(theta1_mat), 2)
+    theta2_mat_norm_squared = np.power(np.linalg.norm(theta2_mat), 2)
 
-    regularization = (llambda / (2 * len(X))) * (theta1_vec_norm_squared + theta2_vec_norm_squared)
-    loss = nnLoss(X, theta1_vec, theta2_vec, y) + regularization
+    regularization = (float(llambda) / (2 * len(X))) * (theta1_mat_norm_squared + theta2_mat_norm_squared)
+    loss = nnLoss(X, theta1_mat, theta2_mat, y) + regularization
 
     return loss
+
+
+########################################################################
+# nnInitWeights
+########################################################################
+def nnInitWeights(num_rows, num_cols):
+    eps = 0.12
+    theta_mat = np.random.uniform(low=-eps, high=eps, size=(num_rows, num_cols))
+
+    return theta_mat
+
+
+########################################################################
+# nnBackProp
+########################################################################
+def nnBackProp(theta12_vec, X, y, llambda):
+    num_samples, num_features = X.shape
+    num_hidden = 25
+    num_labels = y.shape[1]
+    # print("theta12_vec shape = " + str(theta12_vec[:num_hidden * (num_features + 1)].shape))
+    # print("theta12_vec shape = " + str(theta12_vec[num_hidden * (num_features + 1):].shape))
+    theta1_mat = np.matrix(np.reshape(theta12_vec[:num_hidden * (num_features + 1)], (num_hidden, num_features + 1)))
+    theta2_mat = np.matrix(np.reshape(theta12_vec[num_hidden * (num_features + 1):], (num_labels, num_hidden + 1)))
+
+
+    a1, z2, a2, z3, y_hat = nnForwardPass(X, theta1_mat, theta2_mat)
+
+    # print("X shape = " + str(X.shape))
+    # print("theta1_mat shape = " + str(theta1_mat.shape))
+    # print("theta2_mat shape = " + str(theta2_mat.shape))
+    # print("y shape = " + str(y.shape))
+    loss = nnLossRegularized(X, theta1_mat, theta2_mat, y, llambda)
+
+    delta1 = np.matrix(np.zeros(theta1_mat.shape))
+    delta2 = np.matrix(np.zeros(theta2_mat.shape))
+
+    for t in range(num_samples):
+        a1_t = a1[t, :]  # (1, 401)
+        z2_t = z2[t, :]  # (1, 25)
+        a2_t = a2[t, :]  # (1, 26)
+        y_hat_t = y_hat[t, :]  # (1, 10)
+        y_t = y[t, :]  # (1, 10)
+
+        # step 2
+        d3_t = y_hat_t - y_t # (1, 10)
+
+        # step 3
+        z2_t = np.insert(z2_t, 0, values=np.ones(1), axis=1)  # (1, 26)
+        d2_t = np.multiply(d3_t*theta2_mat, sigmoidGrad(z2_t))  # (1,10)*(10,26) .* (1,26) = (1,26)
+
+        # step 4
+        delta1 = delta1 + d2_t[:, 1:].T*a1_t  # (25,401) + (25,1)*(1,401)
+        delta2 = delta2 + d3_t.T*a2_t  # (10,1)*(1,26)
+
+    delta1 /= len(X)
+    delta2 /= len(X)
+
+    grad = np.concatenate((np.ravel(delta1), np.ravel(delta2)))
+
+    return loss, grad
+
+
