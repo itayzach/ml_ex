@@ -239,23 +239,21 @@ def nnBackProp(theta12_vec, X, y, llambda):
     num_samples, num_features = X.shape
     num_hidden = 25
     num_labels = y.shape[1]
-    # print("theta12_vec shape = " + str(theta12_vec[:num_hidden * (num_features + 1)].shape))
-    # print("theta12_vec shape = " + str(theta12_vec[num_hidden * (num_features + 1):].shape))
+
+    # reshape to matrices
     theta1_mat = np.matrix(np.reshape(theta12_vec[:num_hidden * (num_features + 1)], (num_hidden, num_features + 1)))
     theta2_mat = np.matrix(np.reshape(theta12_vec[num_hidden * (num_features + 1):], (num_labels, num_hidden + 1)))
 
-
+    # forward pass
     a1, z2, a2, z3, y_hat = nnForwardPass(X, theta1_mat, theta2_mat)
 
-    # print("X shape = " + str(X.shape))
-    # print("theta1_mat shape = " + str(theta1_mat.shape))
-    # print("theta2_mat shape = " + str(theta2_mat.shape))
-    # print("y shape = " + str(y.shape))
+    # calculate the loss
     loss = nnLossRegularized(X, theta1_mat, theta2_mat, y, llambda)
 
     delta1 = np.matrix(np.zeros(theta1_mat.shape))
     delta2 = np.matrix(np.zeros(theta2_mat.shape))
 
+    # backward pass
     for t in range(num_samples):
         a1_t = a1[t, :]  # (1, 401)
         z2_t = z2[t, :]  # (1, 25)
@@ -277,6 +275,11 @@ def nnBackProp(theta12_vec, X, y, llambda):
     delta1 /= len(X)
     delta2 /= len(X)
 
+    # regularize
+    delta1[:, 1:] = delta1[:, 1:] + (theta1_mat[:, 1:] * llambda) / len(X)
+    delta2[:, 1:] = delta2[:, 1:] + (theta2_mat[:, 1:] * llambda) / len(X)
+
+    # concatenate to a single long vector of weights
     grad = np.concatenate((np.ravel(delta1), np.ravel(delta2)))
 
     return loss, grad
