@@ -161,3 +161,59 @@ def predict_all(X, w_matrix):
 
     return h_argmax
 
+
+########################################################################
+# nnForwardPass
+########################################################################
+def nnForwardPass(X, theta1_vec, theta2_vec):
+    num_samples, num_features = X.shape
+
+    a1 = X
+    a1 = np.insert(a1, 0, values=np.ones(num_samples), axis=1)  # add bias
+    z2 = a1*theta1_vec.T
+    a2 = sigmoid(z2)
+    a2 = np.insert(a2, 0, values=np.ones(num_samples), axis=1)  # add bias
+    z3 = a2*theta2_vec.T
+    a3 = sigmoid(z3)
+
+    return a3
+
+
+########################################################################
+# nnLoss
+########################################################################
+def nnLoss(X, theta1_vec, theta2_vec, y):
+    num_labels = y.shape[0] # y is a one-hot vector, therefor its length is the number of possible labels
+    loss_sum = 0
+
+    # predict
+    y_nn = nnForwardPass(X, theta1_vec, theta2_vec)
+
+    # convert to matrix type
+    y_nn = np.matrix(y_nn)
+    y = np.matrix(y)
+
+    for k in range(num_labels):
+        y_k = y[k, :]
+        y_nn_k = y_nn[k, :]
+
+        logs_diff = -y_k * np.log(y_nn_k).T - (1 - y_k) * np.log(1 - y_nn_k).T
+        loss_sum += logs_diff
+
+    loss = loss_sum / len(X)
+
+    return loss
+
+
+########################################################################
+# nnLossRegularized
+########################################################################
+def nnLossRegularized(X, theta1_vec, theta2_vec, y, llambda):
+
+    theta1_vec_norm_squared = np.power(np.linalg.norm(theta1_vec), 2)
+    theta2_vec_norm_squared = np.power(np.linalg.norm(theta2_vec), 2)
+
+    regularization = (llambda / (2 * len(X))) * (theta1_vec_norm_squared + theta2_vec_norm_squared)
+    loss = nnLoss(X, theta1_vec, theta2_vec, y) + regularization
+
+    return loss
